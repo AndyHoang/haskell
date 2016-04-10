@@ -106,3 +106,8 @@ findKey' key xs = foldr (\(k,v) acc -> if (key == k) then Just v else acc) Nothi
 
 data Point = Float Float
 
+
+add :: [String] -> String
+add [a, b] = a ++ b
+
+
