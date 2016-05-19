@@ -9,7 +9,7 @@ data Expression =
 -- Binary (2-input) operators
 data Bop =
     Plus
-  | Minu
+  | Minus
   | Times
   | Divide
   | Gt
@@ -34,16 +34,17 @@ type State = String -> Int
 -- Exercise 1 -----------------------------------------
 
 extend :: State -> String -> Int -> State
-extend = undefined
+extend st str val= (\s -> if s == str then val else st s)
 
 empty :: State
-empty = undefined
+empty = const 0
 
 -- Exercise 2 -----------------------------------------
 
 evalE :: State -> Expression -> Int
-evalE = undefined
-
+evalE st (Var str) = st str
+evalE st (Val val) = val
+evalE st (Op expr1 bop expr2) = (evalE st expr1) bop (evalE st expr2)
 -- Exercise 3 -----------------------------------------
 
 data DietStatement = DAssign String Expression
