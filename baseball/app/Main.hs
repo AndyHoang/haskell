@@ -5,14 +5,15 @@ import System.Environment
 main :: IO ()
 main = do
   commands <- getArgs
-  executeAction commands
+  summed <- executeAction commands
+  putStrLn $ "Total atBats was: " ++ (show summed)
 
-executeAction:: [String] -> IO()
+executeAction:: [String] -> IO Int
 executeAction [] = sumStatsStream
 executeAction (x:_) = do
   let (Just action) = lookup x dispatch
   action
 
-dispatch :: [(String, IO())]
+dispatch :: [(String, IO Int)]
 dispatch = [("default", sumStatsStream)
           , ("no-stream", sumStats)]
