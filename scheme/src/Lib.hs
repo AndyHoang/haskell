@@ -1,4 +1,3 @@
-
 module Lib
     ( someFunc
     ) where
@@ -13,6 +12,7 @@ data LispVal = Atom String
   | Number Integer
   | String String
   | Bool Bool
+  | Char Char
     deriving (Show)
 
 
@@ -47,6 +47,15 @@ parseString = do  char '"'
                   char '"'
                   return $ String x
 
+
+parseChar:: Parser LispVal
+parseChar = do string "#\\"
+               s <- many1 letter
+               return $ case (map toLower s) of
+                          "space" -> Char ' '
+                          "newline" -> Char '\n'
+                          [x] -> Char x
+                          _ ->  String s
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -98,7 +107,6 @@ toDecimal base str = foldl1 ((+).(*base)) ( map (toInteger . digitToInt)  str)
 
 parseExpr :: Parser LispVal
 parseExpr = try parseNumber
+         <|> try parseChar
          <|> parseString
          <|> parseAtom
-
-
