@@ -6,18 +6,20 @@ module Lib
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 
+import qualified Text.Parsec as Parsec
 data LispVal = Atom String
   | List [LispVal]
   | DottedList [LispVal] LispVal
   | Number Integer
   | String String
   | Bool Bool
+    deriving (Show)
 
 
 someFunc :: IO ()
 someFunc = do
-  (expr: _ ) <- getArgs
-  putStrLn (readExpr expr)
+  args <- getArgs
+  putStrLn (show $ readExpr $ args !! 0)
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -26,18 +28,26 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 readExpr :: String -> String
 readExpr input = case parse parseExpr "Lisp" input of
                    Left err -> "No match: " ++ show err
-                   Right val -> "Found value "
+                   Right val -> "Found value "++ show val
 
 spaces :: Parser ()
 spaces = skipMany1 space
 
+escapedChar :: Parser Char
+escapedChar = char '\\' >> oneOf("\"nrt\\") >>= \c ->
+                            return $ case c of
+                                    '\\' -> '\\'
+                                    'n' -> '\n'
+                                    'r' -> '\r'
+                                    't' -> '\t'
+                                    '"' -> '"'
 
 parseString :: Parser LispVal
-parseString = do
-  char '"'
-  x <- many(noneOf "\"")
-  char '"'
-  return $ String x
+parseString = do  char '"'
+                  x <- many (escapedChar <|> noneOf ['\\', '"'] )
+                  char '"'
+                  return $ String x
+
 
 parseAtom :: Parser LispVal
 parseAtom = do
