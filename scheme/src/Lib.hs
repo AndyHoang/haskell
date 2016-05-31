@@ -5,8 +5,8 @@ module Lib
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
+import Data.Char
 
-import qualified Text.Parsec as Parsec
 data LispVal = Atom String
   | List [LispVal]
   | DottedList [LispVal] LispVal
@@ -30,8 +30,6 @@ readExpr input = case parse parseExpr "Lisp" input of
                    Left err -> "No match: " ++ show err
                    Right val -> "Found value "++ show val
 
-spaces :: Parser ()
-spaces = skipMany1 space
 
 escapedChar :: Parser Char
 escapedChar = char '\\' >> oneOf("\"nrt\\") >>= \c ->
@@ -41,6 +39,7 @@ escapedChar = char '\\' >> oneOf("\"nrt\\") >>= \c ->
                                     'r' -> '\r'
                                     't' -> '\t'
                                     '"' -> '"'
+                                    _ -> c
 
 parseString :: Parser LispVal
 parseString = do  char '"'
@@ -60,7 +59,37 @@ parseAtom = do
              _    -> Atom atom
 
 parseNumber :: Parser LispVal
-parseNumber = fmap (Number. read) $ many1 digit
+parseNumber = parsePlainNumber <|> parseRadixNumber
+
+parseRadixNumber :: Parser LispVal
+parseRadixNumber = char '#' >>
+    (
+      (char 'd' >> parsePlainNumber)
+      <|> (char 'b' >> parseBinaryNumber)
+      <|> (char 'o' >> parseOctalNumber)
+      <|> (char 'x' >> parseHexNumber)
+    )
+
+parseBinaryNumber :: Parser LispVal
+parseBinaryNumber  = readNumberWithBase "01" 2
+
+parseOctalNumber:: Parser LispVal
+parseOctalNumber = readNumberWithBase "012345678" 8
+
+parseHexNumber:: Parser LispVal
+parseHexNumber = readNumberWithBase "0123456789abcdefABCDEF" 16
+
+parsePlainNumber :: Parser LispVal
+parsePlainNumber = fmap (Number. read) $ many1 digit
+
+readNumberWithBase :: String -> Integer -> Parser LispVal
+readNumberWithBase digits base = do
+                                d <- many (oneOf digits)
+                                return $ Number $ toDecimal base d
+
+toDecimal :: Integer -> String -> Integer
+toDecimal base str = foldl1 ((+).(*base)) ( map (toInteger . digitToInt)  str)
+
 --parseNumber = do
 --  num <- many1 digit
 --  return $ Number . read $ num
@@ -68,8 +97,8 @@ parseNumber = fmap (Number. read) $ many1 digit
 
 
 parseExpr :: Parser LispVal
-parseExpr = parseAtom
+parseExpr = try parseNumber
          <|> parseString
-         <|> parseNumber
+         <|> parseAtom
 
 
