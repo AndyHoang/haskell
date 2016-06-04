@@ -5,6 +5,7 @@ module Lib
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Data.Char
+import Control.Monad
 
 data LispVal = Atom String
   | List [LispVal]
@@ -13,6 +14,7 @@ data LispVal = Atom String
   | String String
   | Bool Bool
   | Char Char
+  | Float Double
     deriving (Show)
 
 
@@ -40,6 +42,10 @@ escapedChar = char '\\' >> oneOf("\"nrt\\") >>= \c ->
                                     't' -> '\t'
                                     '"' -> '"'
                                     _ -> c
+
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
 
 parseString :: Parser LispVal
 parseString = do  char '"'
@@ -69,6 +75,13 @@ parseAtom = do
 
 parseNumber :: Parser LispVal
 parseNumber = parsePlainNumber <|> parseRadixNumber
+
+parseFloat :: Parser LispVal
+parseFloat = do
+  num <- many digit
+  char '.'
+  decimal <- many digit
+  return $ Float (read (num ++ "." ++ decimal) :: Double)
 
 parseRadixNumber :: Parser LispVal
 parseRadixNumber = char '#' >>
@@ -104,6 +117,8 @@ toDecimal base str = foldl1 ((+).(*base)) ( map (toInteger . digitToInt)  str)
 --  return $ Number . read $ num
 --parseNumber = (many1 digit) >>= (\x -> return ((Number . read) x))
 
+spaces :: Parser()
+spaces = skipMany1 space
 
 parseExpr :: Parser LispVal
 parseExpr = try parseNumber
